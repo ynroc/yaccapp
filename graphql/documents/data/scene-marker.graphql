@@ -4,6 +4,7 @@ fragment SceneMarkerData on SceneMarker {
   seconds
   stream
   preview
+  screenshot
 
   scene {
     id
@@ -12,10 +13,12 @@ fragment SceneMarkerData on SceneMarker {
   primary_tag {
     id
     name
+    aliases
   }
 
   tags {
     id
     name
+    aliases
   }
 }

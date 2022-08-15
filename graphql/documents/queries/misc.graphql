@@ -1,9 +1,3 @@
-query FindTag($id: ID!) {
-  findTag(id: $id) {
-    ...TagData
-  }
-}
-
 query MarkerStrings($q: String, $sort: String) {
   markerStrings(q: $q, sort: $sort) {
     id
@@ -29,27 +23,31 @@ query AllStudiosForFilter {
     ...SlimStudioData
   }
 }
+query AllMoviesForFilter {
+  allMovies {
+    ...SlimMovieData
+  }
+}
 
 query AllTagsForFilter {
   allTags {
     id
     name
-  }
-}
-
-query ValidGalleriesForScene($scene_id: ID!) {
-  validGalleriesForScene(scene_id: $scene_id) {
-    id
-    path
+    aliases
   }
 }
 
 query Stats {
   stats {
     scene_count,
+    scenes_size,
+    scenes_duration,
+    image_count,
+    images_size,
     gallery_count,
     performer_count,
     studio_count,
+    movie_count,
     tag_count
   }
 }
@@ -64,5 +62,12 @@ query Version {
     version
     hash
     build_time
+  }
+}
+
+query LatestVersion {
+  latestversion {
+    shorthash
+    url
   }
 }

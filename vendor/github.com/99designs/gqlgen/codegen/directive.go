@@ -6,14 +6,44 @@ import (
 	"strings"
 
 	"github.com/99designs/gqlgen/codegen/templates"
-	"github.com/pkg/errors"
-	"github.com/vektah/gqlparser/ast"
+	"github.com/vektah/gqlparser/v2/ast"
 )
 
+type DirectiveList map[string]*Directive
+
+// LocationDirectives filter directives by location
+func (dl DirectiveList) LocationDirectives(location string) DirectiveList {
+	return locationDirectives(dl, ast.DirectiveLocation(location))
+}
+
 type Directive struct {
+	*ast.DirectiveDefinition
 	Name    string
 	Args    []*FieldArgument
 	Builtin bool
+}
+
+// IsLocation check location directive
+func (d *Directive) IsLocation(location ...ast.DirectiveLocation) bool {
+	for _, l := range d.Locations {
+		for _, a := range location {
+			if l == a {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func locationDirectives(directives DirectiveList, location ...ast.DirectiveLocation) map[string]*Directive {
+	mDirectives := make(map[string]*Directive)
+	for name, d := range directives {
+		if d.IsLocation(location...) {
+			mDirectives[name] = d
+		}
+	}
+	return mDirectives
 }
 
 func (b *builder) buildDirectives() (map[string]*Directive, error) {
@@ -21,12 +51,7 @@ func (b *builder) buildDirectives() (map[string]*Directive, error) {
 
 	for name, dir := range b.Schema.Directives {
 		if _, ok := directives[name]; ok {
-			return nil, errors.Errorf("directive with name %s already exists", name)
-		}
-
-		var builtin bool
-		if name == "skip" || name == "include" || name == "deprecated" {
-			builtin = true
+			return nil, fmt.Errorf("directive with name %s already exists", name)
 		}
 
 		var args []*FieldArgument
@@ -46,16 +71,17 @@ func (b *builder) buildDirectives() (map[string]*Directive, error) {
 				var err error
 				newArg.Default, err = arg.DefaultValue.Value(nil)
 				if err != nil {
-					return nil, errors.Errorf("default value for directive argument %s(%s) is not valid: %s", dir.Name, arg.Name, err.Error())
+					return nil, fmt.Errorf("default value for directive argument %s(%s) is not valid: %w", dir.Name, arg.Name, err)
 				}
 			}
 			args = append(args, newArg)
 		}
 
 		directives[name] = &Directive{
-			Name:    name,
-			Args:    args,
-			Builtin: builtin,
+			DirectiveDefinition: dir,
+			Name:                name,
+			Args:                args,
+			Builtin:             b.Config.Directives[name].SkipRuntime,
 		}
 	}
 
@@ -92,8 +118,10 @@ func (b *builder) getDirectives(list ast.DirectiveList) ([]*Directive, error) {
 			})
 		}
 		dirs[i] = &Directive{
-			Name: d.Name,
-			Args: args,
+			Name:                d.Name,
+			Args:                args,
+			DirectiveDefinition: list[i].Definition,
+			Builtin:             b.Config.Directives[d.Name].SkipRuntime,
 		}
 
 	}
@@ -119,18 +147,12 @@ func (d *Directive) CallArgs() string {
 	return strings.Join(args, ", ")
 }
 
-func (d *Directive) ResolveArgs(obj string, next string) string {
-	args := []string{"ctx", obj, next}
+func (d *Directive) ResolveArgs(obj string, next int) string {
+	args := []string{"ctx", obj, fmt.Sprintf("directive%d", next)}
 
 	for _, arg := range d.Args {
-		dArg := "&" + arg.VarName
-		if !arg.TypeReference.IsPtr() {
-			if arg.Value != nil {
-				dArg = templates.Dump(arg.Value)
-			} else {
-				dArg = templates.Dump(arg.Default)
-			}
-		} else if arg.Value == nil && arg.Default == nil {
+		dArg := arg.VarName
+		if arg.Value == nil && arg.Default == nil {
 			dArg = "nil"
 		}
 
@@ -144,7 +166,7 @@ func (d *Directive) Declaration() string {
 	res := ucFirst(d.Name) + " func(ctx context.Context, obj interface{}, next graphql.Resolver"
 
 	for _, arg := range d.Args {
-		res += fmt.Sprintf(", %s %s", arg.Name, templates.CurrentImports.LookupType(arg.TypeReference.GO))
+		res += fmt.Sprintf(", %s %s", templates.ToGoPrivate(arg.Name), templates.CurrentImports.LookupType(arg.TypeReference.GO))
 	}
 
 	res += ") (res interface{}, err error)"

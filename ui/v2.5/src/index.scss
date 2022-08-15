@@ -1,0 +1,830 @@
+@import "styles/theme";
+@import "styles/range";
+@import "styles/scrollbars";
+@import "src/components/Changelog/styles.scss";
+@import "src/components/Galleries/styles.scss";
+@import "src/components/Help/styles.scss";
+@import "src/components/Images/styles.scss";
+@import "src/components/List/styles.scss";
+@import "src/components/Movies/styles.scss";
+@import "src/components/Performers/styles.scss";
+@import "src/components/FrontPage/styles.scss";
+@import "src/components/Scenes/styles.scss";
+@import "src/components/SceneDuplicateChecker/styles.scss";
+@import "src/components/SceneFilenameParser/styles.scss";
+@import "src/components/ScenePlayer/styles.scss";
+@import "src/components/Settings/styles.scss";
+@import "src/components/Studios/styles.scss";
+@import "src/components/Shared/styles.scss";
+@import "src/components/Tags/styles.scss";
+@import "src/components/Wall/styles.scss";
+@import "src/components/Tagger/styles.scss";
+@import "src/hooks/Lightbox/lightbox.scss";
+@import "src/hooks/Interactive/interactive.scss";
+@import "src/components/Dialogs/IdentifyDialog/styles.scss";
+@import "src/components/Dialogs/styles.scss";
+@import "../node_modules/flag-icon-css/css/flag-icon.min.css";
+@import "video.js/dist/video-js.css";
+@import "videojs-seek-buttons/dist/videojs-seek-buttons.css";
+
+/* stylelint-disable */
+#root {
+  position: relative !important;
+}
+/* stylelint-enable */
+
+html {
+  font-size: 14px;
+}
+
+body {
+  color: $text-color;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 4rem 0 0 0;
+
+  @include media-breakpoint-down(xs) {
+    @media (orientation: portrait) {
+      padding: 1rem 0 5rem;
+    }
+  }
+}
+
+code,
+.code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+dd {
+  white-space: pre-line;
+}
+
+.input-control,
+.text-input {
+  border: 0;
+  box-shadow: 0 0 0 0 rgba(19, 124, 189, 0), 0 0 0 0 rgba(19, 124, 189, 0),
+    0 0 0 0 rgba(19, 124, 189, 0), inset 0 0 0 1px rgba(16, 22, 26, 0.3),
+    inset 0 1px 1px rgba(16, 22, 26, 0.4);
+  color: $text-color;
+
+  &:focus {
+    border: 0;
+    box-shadow: 0 0 0 1px $primary, 0 0 0 1px $primary,
+      0 0 0 3px rgba(19, 124, 189, 0.3), inset 0 0 0 1px rgba(16, 22, 26, 0.3),
+      inset 0 1px 1px rgba(16, 22, 26, 0.4);
+    color: $text-color;
+  }
+}
+
+.input-control,
+.input-control:focus,
+.input-control:disabled {
+  background-color: $secondary;
+}
+
+.input-control:disabled {
+  opacity: 0.8;
+}
+
+.text-input,
+.text-input:focus,
+.text-input[readonly],
+.text-input:disabled {
+  background-color: $textfield-bg;
+}
+
+textarea.text-input {
+  line-height: 2.5ex;
+  min-height: 12ex;
+  overflow-y: scroll;
+}
+
+.table-list {
+  min-width: min-content;
+}
+
+.table-list a {
+  color: $text-color;
+}
+
+.table-list table {
+  width: inherit;
+}
+
+.table-list td,
+.table-list th {
+  border-left: 1px solid #414c53;
+  font-size: 1rem;
+  text-align: center;
+  vertical-align: middle;
+
+  h5,
+  h6 {
+    font-size: 1rem;
+  }
+
+  &:first-child {
+    border-left: none;
+  }
+}
+
+@media (min-width: 576px) {
+  .zoom-0 {
+    width: 240px;
+
+    .scene-card-preview {
+      height: 135px;
+    }
+
+    .portrait {
+      height: 180px;
+    }
+
+    .gallery-card-image,
+    .tag-card-image {
+      max-height: 180px;
+    }
+  }
+
+  .zoom-1 {
+    width: 320px;
+
+    .scene-card-preview {
+      height: 180px;
+    }
+
+    .portrait {
+      height: 240px;
+    }
+
+    .gallery-card-image,
+    .tag-card-image {
+      max-height: 240px;
+    }
+
+    .image-card-preview {
+      height: 240px;
+    }
+  }
+
+  .zoom-2 {
+    width: 480px;
+
+    .scene-card-preview {
+      height: 270px;
+    }
+
+    .portrait {
+      height: 360px;
+    }
+
+    .gallery-card-image,
+    .tag-card-image {
+      max-height: 360px;
+    }
+
+    .image-card-preview {
+      height: 360px;
+    }
+  }
+
+  .zoom-3 {
+    width: 640px;
+
+    .scene-card-preview {
+      height: 360px;
+    }
+
+    .portrait {
+      height: 480px;
+    }
+
+    .tag-card-image,
+    .gallery-card-image {
+      max-height: 480px;
+    }
+
+    .image-card-preview {
+      height: 480px;
+    }
+  }
+}
+
+.scene-card-preview,
+.gallery-card-image,
+.tag-card-image,
+.image-card-preview {
+  height: auto;
+  width: 100%;
+}
+
+.preview-button {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  position: absolute;
+  text-align: center;
+  width: 100%;
+
+  button.btn,
+  button.btn:not(:disabled):not(.disabled):hover,
+  button.btn:not(:disabled):not(.disabled):focus,
+  button.btn:not(:disabled):not(.disabled):active {
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .fa-icon {
+    color: $text-color;
+    filter: drop-shadow(2px 4px 6px black);
+    height: 5em;
+    opacity: 0;
+    transition: opacity 0.5s;
+    width: 5em;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+
+  @media (hover: none), (pointer: coarse) {
+    // always show preview button when hovering not supported
+    align-items: flex-end;
+    justify-content: right;
+
+    .fa-icon {
+      height: 3em;
+      opacity: 0.8;
+      width: 3em;
+    }
+  }
+}
+
+/* this is a bit of a hack, because we can't supply direct class names
+   to the react-select controls */
+/* stylelint-disable selector-class-pattern */
+
+div.react-select__control {
+  background-color: $secondary;
+  border-color: $secondary;
+  color: $text-color;
+  cursor: pointer;
+  white-space: nowrap;
+
+  .react-select__single-value,
+  .react-select__input {
+    color: $text-color;
+  }
+
+  .react-select__multi-value {
+    background-color: $muted-gray;
+    color: $text-color;
+  }
+}
+
+div.react-select__menu,
+div.dropdown-menu {
+  background-color: $secondary;
+  color: $text-color;
+  z-index: 16;
+
+  .react-select__option,
+  .dropdown-item {
+    color: $text-color;
+  }
+
+  .react-select__option--is-focused,
+  .dropdown-item:focus,
+  .dropdown-item:hover {
+    background-color: #8a9ba826;
+    cursor: pointer;
+  }
+}
+
+div.dropdown-menu {
+  max-height: 300px;
+  overflow-y: auto;
+
+  .dropdown-item {
+    display: flex;
+  }
+}
+
+/* fix for react-select in input-group */
+.input-group .react-select {
+  border: 0;
+  height: 100%;
+  padding: 0;
+
+  .react-select__control {
+    border-radius: 0;
+  }
+}
+
+/* stylelint-enable selector-class-pattern */
+
+.image-thumbnail {
+  height: 100px;
+  min-width: 50px;
+  object-fit: cover;
+  object-position: top;
+}
+
+.edit-button {
+  margin-right: 10px;
+}
+
+.wrap-tags {
+  column-gap: 10px;
+  flex-wrap: wrap;
+  row-gap: 10px;
+
+  /* stylelint-disable */
+  .badge {
+    white-space: normal !important;
+    margin: unset;
+  }
+  /* stylelint-enable */
+}
+
+.tag-item {
+  background-color: $muted-gray;
+  color: $dark-text;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  margin: 5px;
+  padding: 2px 6px;
+
+  &:hover {
+    cursor: pointer;
+  }
+
+  .btn {
+    background: none;
+    border: none;
+    bottom: 2px;
+    color: $dark-text;
+    font-size: 12px;
+    line-height: 1rem;
+    margin-left: 0.5rem;
+    opacity: 0.5;
+    padding: 0;
+    position: relative;
+
+    &:active,
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  a {
+    color: unset;
+
+    &:hover {
+      color: unset;
+      text-decoration: none;
+    }
+  }
+}
+
+.filter-container,
+.operation-container {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+
+.filter-item,
+.operation-item {
+  margin: 0 10px;
+}
+
+.rating-5 {
+  background: #ff2f39;
+}
+
+.rating-4 {
+  background: $red1;
+}
+
+.rating-3 {
+  background: $orange1;
+}
+
+.rating-2 {
+  background: $sepia1;
+}
+
+.rating-1 {
+  background: $dark-gray5;
+}
+
+.rating-banner {
+  color: #fff;
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 400;
+  left: -46px;
+  letter-spacing: 1px;
+  line-height: 1.6rem;
+  padding: 6px 45px;
+  position: absolute;
+  text-align: center;
+  text-size-adjust: none;
+  text-transform: uppercase;
+  top: 14px;
+  transform: rotate(-36deg);
+}
+
+.card {
+  background-color: $card-bg;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(16, 22, 26, 0.4), 0 0 0 rgba(16, 22, 26, 0),
+    0 0 0 rgba(16, 22, 26, 0);
+  padding: 20px;
+}
+
+.toast-container {
+  left: 45%;
+  max-width: 350px;
+  position: fixed;
+  top: 2rem;
+  z-index: 1051;
+
+  .success {
+    background-color: $success;
+  }
+
+  .danger {
+    background-color: $danger;
+  }
+
+  .warning {
+    background-color: $warning;
+  }
+
+  .toast {
+    width: 350px;
+  }
+
+  .toast-header {
+    background-color: transparent;
+    border: none;
+    color: $text-color;
+
+    .close {
+      color: $text-color;
+      text-shadow: none;
+    }
+  }
+
+  .toast-body {
+    white-space: pre-wrap;
+  }
+}
+
+.image-input {
+  margin-bottom: 0;
+  position: relative;
+
+  input[type="file"], /* FF, IE7+, chrome (except button) */
+  input[type="file"]::-webkit-file-upload-button {
+    /* chromes and blink button */
+    cursor: pointer;
+  }
+
+  [type="file"] {
+    display: block;
+    filter: alpha(opacity=0);
+    min-height: 100%;
+    min-width: 100%;
+    opacity: 0;
+    position: absolute;
+    right: 0;
+    text-align: right;
+    top: 0;
+  }
+}
+
+.fa-icon {
+  margin: 0 0.4rem;
+}
+
+.btn .fa-icon {
+  &:last-child:first-child {
+    margin: 0;
+  }
+}
+
+.popover-body .btn .fa-icon,
+.dropdown-item .fa-icon {
+  margin-left: 0;
+}
+
+.brand-icon {
+  padding: 3px 6px;
+
+  img {
+    height: 1.5rem;
+  }
+}
+
+.top-nav {
+  justify-content: start;
+  padding: 0.25rem 1rem;
+
+  @include media-breakpoint-down(xs) {
+    padding: 0.25rem 2rem;
+
+    @media (orientation: portrait) {
+      bottom: 0;
+      top: auto;
+    }
+  }
+
+  .navbar-toggler {
+    padding: 0.5em 0;
+    text-align: center;
+    width: 3em;
+
+    svg {
+      margin: auto;
+    }
+  }
+
+  .navbar-collapse {
+    justify-content: space-between;
+    max-height: calc(100vh - 4rem);
+
+    @include media-breakpoint-down(xs) {
+      @media (orientation: landscape) {
+        overflow-y: scroll;
+      }
+    }
+
+    .navbar-nav {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding-bottom: 0.5rem;
+
+      @include media-breakpoint-up(xl) {
+        flex-wrap: nowrap;
+        padding-bottom: 0;
+      }
+
+      &:last-child {
+        display: none;
+      }
+
+      @include media-breakpoint-down(xs) {
+        &:last-child {
+          display: flex;
+          min-height: 3rem;
+        }
+      }
+    }
+  }
+
+  .navbar-buttons .btn {
+    align-items: center;
+    display: flex;
+  }
+
+  @include media-breakpoint-down(xs) {
+    .navbar-buttons .nav-utility {
+      display: none;
+    }
+  }
+
+  .nav-link {
+    padding: 0;
+  }
+
+  .fa-icon {
+    @include media-breakpoint-down(xs) {
+      margin: 0;
+    }
+
+    &.nav-menu-icon {
+      @include media-breakpoint-down(lg) {
+        height: 100%;
+        max-height: min(10vw, 55px);
+        width: 100%;
+      }
+    }
+  }
+
+  .btn {
+    white-space: nowrap;
+  }
+
+  @include media-breakpoint-down(lg) {
+    .navbar-brand {
+      margin-left: -8px;
+    }
+
+    .navbar-buttons {
+      margin: 0 -8px;
+    }
+
+    .btn {
+      padding: 6px 12px;
+    }
+  }
+}
+
+.donate {
+  align-items: center;
+  display: flex;
+  height: 100%;
+
+  svg {
+    color: #ff7373;
+
+    @include media-breakpoint-down(xs) {
+      margin: 0;
+    }
+  }
+}
+
+.error-message {
+  white-space: "pre-wrap";
+}
+
+.btn-toolbar .form-control {
+  width: inherit;
+}
+
+.stats {
+  &-element {
+    flex-grow: 1;
+    margin: auto 0.5rem;
+  }
+
+  .title {
+    font-size: 3vw;
+    text-align: center;
+
+    @media (max-width: 576px) {
+      font-size: 16px;
+    }
+  }
+
+  .heading {
+    text-align: center;
+    text-transform: uppercase;
+  }
+}
+
+.pre {
+  white-space: pre-line;
+}
+
+.markdown {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-bottom: 16px;
+    margin-top: 24px;
+  }
+
+  & > h1:first-child,
+  & > h2:first-child,
+  & > h3:first-child,
+  & > h4:first-child,
+  & > h5:first-child,
+  & > h6:first-child {
+    margin-top: 0;
+  }
+
+  h1,
+  h2 {
+    padding-bottom: 0.3em;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.83rem;
+  }
+
+  h3 {
+    font-size: 1.67rem;
+  }
+
+  h4 {
+    font-size: 1.5rem;
+  }
+
+  h5 {
+    font-size: 1.33rem;
+  }
+
+  code {
+    background-color: darken($color: $card-bg, $amount: 3);
+    color: $text-color;
+    padding: 0.2em 0.4em;
+  }
+
+  blockquote {
+    p {
+      margin-bottom: 0;
+      vertical-align: middle;
+    }
+  }
+
+  blockquote,
+  pre {
+    code {
+      padding: 0;
+    }
+
+    background-color: darken($color: $card-bg, $amount: 3);
+    border-radius: 3px;
+    padding: 16px;
+  }
+
+  pre {
+    font-size: 85%;
+    line-height: 1.45;
+    overflow: auto;
+  }
+
+  table {
+    display: block;
+    margin-bottom: 16px;
+    overflow: auto;
+    width: 100%;
+
+    tr {
+      border-top: 1px solid darken($color: #201d1a, $amount: 3);
+    }
+
+    tr:nth-child(2n) {
+      background-color: darken($color: $card-bg, $amount: 2);
+    }
+
+    td,
+    th {
+      border: 1px solid darken($color: #201d1a, $amount: 3);
+      padding: 6px 13px;
+    }
+  }
+}
+
+.no-focus:focus {
+  background-color: inherit;
+  border-color: inherit;
+  box-shadow: inherit;
+}
+
+.button-group-above {
+  .btn:first-child {
+    border-bottom-left-radius: 0;
+  }
+
+  .btn:last-child {
+    border-bottom-right-radius: 0;
+  }
+}
+
+// workaround for dropdown button in button group
+.btn-group > .dropdown:not(:last-child) > .btn {
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+}
+
+dl.details-list {
+  display: grid;
+  grid-column-gap: 10px;
+  grid-template-columns: minmax(16.67%, auto) 1fr;
+}
+
+// middle align checkboxes
+.form-group .form-check .form-check-input {
+  vertical-align: middle;
+}
+
+// Fix Safari styling on dropdowns
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4.95 10' fill='%23fff'><polygon points='1.41 4.67 2.48 3.18 3.54 4.67 1.41 4.67'/><polygon points='3.54 5.33 2.48 6.82 1.41 5.33 3.54 5.33'/></svg>")
+    no-repeat right 2px center;
+}
+
+.left-spacing {
+  margin-left: 0.5em;
+}

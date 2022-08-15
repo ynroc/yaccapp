@@ -3,6 +3,7 @@ fragment PerformerData on Performer {
   checksum
   name
   url
+  gender
   twitter
   instagram
   birthdate
@@ -17,6 +18,24 @@ fragment PerformerData on Performer {
   piercings
   aliases
   favorite
+  ignore_auto_tag
   image_path
   scene_count
+  image_count
+  gallery_count
+  movie_count
+
+  tags {
+    ...SlimTagData
+  }
+
+  stash_ids {
+    stash_id
+    endpoint
+  }
+  rating
+  details
+  death_date
+  hair_color
+  weight
 }

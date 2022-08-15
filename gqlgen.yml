@@ -8,14 +8,22 @@ exec:
 model:
   filename: pkg/models/generated_models.go
 resolver:
-  filename: pkg/api/resolver.go
+  filename: internal/api/resolver.go
   type: Resolver
 
 struct_tag: gqlgen
 
 models:
+  # Scalars
+  Timestamp:
+    model: github.com/stashapp/stash/pkg/models.Timestamp
+  # Objects
   Gallery:
     model: github.com/stashapp/stash/pkg/models.Gallery
+  Image:
+    model: github.com/stashapp/stash/pkg/models.Image
+  ImageFileType:
+    model: github.com/stashapp/stash/pkg/models.ImageFileType
   Performer:
     model: github.com/stashapp/stash/pkg/models.Performer
   Scene:
@@ -26,5 +34,16 @@ models:
     model: github.com/stashapp/stash/pkg/models.ScrapedItem
   Studio:
     model: github.com/stashapp/stash/pkg/models.Studio
+  Movie:
+    model: github.com/stashapp/stash/pkg/models.Movie
   Tag:
     model: github.com/stashapp/stash/pkg/models.Tag
+  SceneFileType:
+    model: github.com/stashapp/stash/pkg/models.SceneFileType
+  SavedFilter:
+    model: github.com/stashapp/stash/pkg/models.SavedFilter
+  StashID:
+    model: github.com/stashapp/stash/pkg/models.StashID
+  SceneCaption:
+    model: github.com/stashapp/stash/pkg/models.SceneCaption
+

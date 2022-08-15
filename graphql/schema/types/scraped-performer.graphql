@@ -1,6 +1,9 @@
 """A performer from a scraping operation..."""
 type ScrapedPerformer {
+  """Set if performer matched"""
+  stored_id: ID
   name: String
+  gender: String
   url: String
   twitter: String
   instagram: String
@@ -15,10 +18,23 @@ type ScrapedPerformer {
   tattoos: String
   piercings: String
   aliases: String
+  tags: [ScrapedTag!]
+
+  """This should be a base64 encoded data URL"""
+  image: String @deprecated(reason: "use images instead")
+  images: [String!]
+  details: String
+  death_date: String
+  hair_color: String
+  weight: String
+  remote_site_id: String
 }
 
 input ScrapedPerformerInput {
+  """Set if performer matched"""
+  stored_id: ID
   name: String
+  gender: String
   url: String
   twitter: String
   instagram: String
@@ -33,4 +49,12 @@ input ScrapedPerformerInput {
   tattoos: String
   piercings: String
   aliases: String
+
+  # not including tags for the input
+  # not including image for the input
+  details: String
+  death_date: String
+  hair_color: String
+  weight: String
+  remote_site_id: String
 }

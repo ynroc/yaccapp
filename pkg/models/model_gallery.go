@@ -1,116 +1,102 @@
 package models
 
 import (
-	"archive/zip"
-	"bytes"
 	"database/sql"
-	"github.com/disintegration/imaging"
-	"github.com/stashapp/stash/pkg/api/urlbuilders"
-	"github.com/stashapp/stash/pkg/logger"
-	"github.com/stashapp/stash/pkg/utils"
-	"image"
-	"image/jpeg"
-	"io/ioutil"
 	"path/filepath"
-	"sort"
-	"strings"
+	"time"
 )
 
 type Gallery struct {
-	ID        int             `db:"id" json:"id"`
-	Path      string          `db:"path" json:"path"`
-	Checksum  string          `db:"checksum" json:"checksum"`
-	SceneID   sql.NullInt64   `db:"scene_id,omitempty" json:"scene_id"`
-	CreatedAt SQLiteTimestamp `db:"created_at" json:"created_at"`
-	UpdatedAt SQLiteTimestamp `db:"updated_at" json:"updated_at"`
+	ID          int                 `db:"id" json:"id"`
+	Path        sql.NullString      `db:"path" json:"path"`
+	Checksum    string              `db:"checksum" json:"checksum"`
+	Zip         bool                `db:"zip" json:"zip"`
+	Title       sql.NullString      `db:"title" json:"title"`
+	URL         sql.NullString      `db:"url" json:"url"`
+	Date        SQLiteDate          `db:"date" json:"date"`
+	Details     sql.NullString      `db:"details" json:"details"`
+	Rating      sql.NullInt64       `db:"rating" json:"rating"`
+	Organized   bool                `db:"organized" json:"organized"`
+	StudioID    sql.NullInt64       `db:"studio_id,omitempty" json:"studio_id"`
+	FileModTime NullSQLiteTimestamp `db:"file_mod_time" json:"file_mod_time"`
+	CreatedAt   SQLiteTimestamp     `db:"created_at" json:"created_at"`
+	UpdatedAt   SQLiteTimestamp     `db:"updated_at" json:"updated_at"`
 }
 
-func (g *Gallery) GetFiles(baseURL string) []*GalleryFilesType {
-	var galleryFiles []*GalleryFilesType
-	filteredFiles, readCloser, err := g.listZipContents()
-	if err != nil {
-		return nil
-	}
-	defer readCloser.Close()
+// GalleryPartial represents part of a Gallery object. It is used to update
+// the database entry. Only non-nil fields will be updated.
+type GalleryPartial struct {
+	ID          int                  `db:"id" json:"id"`
+	Path        *sql.NullString      `db:"path" json:"path"`
+	Checksum    *string              `db:"checksum" json:"checksum"`
+	Title       *sql.NullString      `db:"title" json:"title"`
+	URL         *sql.NullString      `db:"url" json:"url"`
+	Date        *SQLiteDate          `db:"date" json:"date"`
+	Details     *sql.NullString      `db:"details" json:"details"`
+	Rating      *sql.NullInt64       `db:"rating" json:"rating"`
+	Organized   *bool                `db:"organized" json:"organized"`
+	StudioID    *sql.NullInt64       `db:"studio_id,omitempty" json:"studio_id"`
+	FileModTime *NullSQLiteTimestamp `db:"file_mod_time" json:"file_mod_time"`
+	CreatedAt   *SQLiteTimestamp     `db:"created_at" json:"created_at"`
+	UpdatedAt   *SQLiteTimestamp     `db:"updated_at" json:"updated_at"`
+}
 
-	builder := urlbuilders.NewGalleryURLBuilder(baseURL, g.ID)
-	for i, file := range filteredFiles {
-		galleryURL := builder.GetGalleryImageURL(i)
-		galleryFile := GalleryFilesType{
-			Index: i,
-			Name:  &file.Name,
-			Path:  &galleryURL,
+func (s *Gallery) File() File {
+	ret := File{
+		Path: s.Path.String,
+	}
+
+	ret.Checksum = s.Checksum
+
+	if s.FileModTime.Valid {
+		ret.FileModTime = s.FileModTime.Timestamp
+	}
+
+	return ret
+}
+
+func (s *Gallery) SetFile(f File) {
+	path := f.Path
+	s.Path = sql.NullString{
+		String: path,
+		Valid:  true,
+	}
+
+	if f.Checksum != "" {
+		s.Checksum = f.Checksum
+	}
+
+	zeroTime := time.Time{}
+	if f.FileModTime != zeroTime {
+		s.FileModTime = NullSQLiteTimestamp{
+			Timestamp: f.FileModTime,
+			Valid:     true,
 		}
-		galleryFiles = append(galleryFiles, &galleryFile)
 	}
-
-	return galleryFiles
 }
 
-func (g *Gallery) GetImage(index int) []byte {
-	data, _ := g.readZipFile(index)
-	return data
+// GetTitle returns the title of the scene. If the Title field is empty,
+// then the base filename is returned.
+func (s Gallery) GetTitle() string {
+	if s.Title.String != "" {
+		return s.Title.String
+	}
+
+	if s.Path.Valid {
+		return filepath.Base(s.Path.String)
+	}
+
+	return ""
 }
 
-func (g *Gallery) GetThumbnail(index int) []byte {
-	data, _ := g.readZipFile(index)
-	srcImage, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
-		return data
-	}
-	resizedImage := imaging.Resize(srcImage, 100, 0, imaging.NearestNeighbor)
-	buf := new(bytes.Buffer)
-	err = jpeg.Encode(buf, resizedImage, nil)
-	if err != nil {
-		return data
-	}
-	return buf.Bytes()
+const DefaultGthumbWidth int = 640
+
+type Galleries []*Gallery
+
+func (g *Galleries) Append(o interface{}) {
+	*g = append(*g, o.(*Gallery))
 }
 
-func (g *Gallery) readZipFile(index int) ([]byte, error) {
-	filteredFiles, readCloser, err := g.listZipContents()
-	if err != nil {
-		return nil, err
-	}
-	defer readCloser.Close()
-
-	zipFile := filteredFiles[index]
-	zipFileReadCloser, err := zipFile.Open()
-	if err != nil {
-		logger.Warn("failed to read file inside zip file")
-		return nil, err
-	}
-	defer zipFileReadCloser.Close()
-
-	return ioutil.ReadAll(zipFileReadCloser)
-}
-
-func (g *Gallery) listZipContents() ([]*zip.File, *zip.ReadCloser, error) {
-	readCloser, err := zip.OpenReader(g.Path)
-	if err != nil {
-		logger.Warn("failed to read zip file")
-		return nil, nil, err
-	}
-
-	filteredFiles := make([]*zip.File, 0)
-	for _, file := range readCloser.File {
-		if file.FileInfo().IsDir() {
-			continue
-		}
-		ext := filepath.Ext(file.Name)
-		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" {
-			continue
-		}
-		if strings.Contains(file.Name, "__MACOSX") {
-			continue
-		}
-		filteredFiles = append(filteredFiles, file)
-	}
-	sort.Slice(filteredFiles, func(i, j int) bool {
-		a := filteredFiles[i]
-		b := filteredFiles[j]
-		return utils.NaturalCompare(a.Name, b.Name)
-	})
-
-	return filteredFiles, readCloser, nil
+func (g *Galleries) New() interface{} {
+	return &Gallery{}
 }

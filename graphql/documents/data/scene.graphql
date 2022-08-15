@@ -1,12 +1,24 @@
 fragment SceneData on Scene {
   id
   checksum
+  oshash
   title
   details
   url
   date
   rating
+  o_counter
+  organized
   path
+  phash
+  interactive
+  interactive_speed
+  captions {
+    language_code
+    caption_type
+  }
+  created_at
+  updated_at
 
   file {
     size
@@ -26,27 +38,47 @@ fragment SceneData on Scene {
     webp
     vtt
     chapters_vtt
+    sprite
+    funscript
+    interactive_heatmap
+    caption
   }
 
   scene_markers {
     ...SceneMarkerData
   }
 
-  is_streamable
-
-  gallery {
-    ...GalleryData
+  galleries {
+    ...SlimGalleryData
   }
 
   studio {
-    ...StudioData
+    ...SlimStudioData
+  }
+  
+  movies {
+    movie {
+      ...MovieData
+    }
+    scene_index
   }
 
   tags {
-    ...TagData
+    ...SlimTagData
   }
 
   performers {
     ...PerformerData
+  }
+
+  stash_ids {
+    endpoint
+    stash_id
+  }
+
+  sceneStreams {
+    url
+    mime_type
+    label
   }
 }
