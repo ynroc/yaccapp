@@ -20,14 +20,36 @@ query ListSceneScrapers {
   }
 }
 
-query ScrapePerformerList($scraper_id: ID!, $query: String!) {
-  scrapePerformerList(scraper_id: $scraper_id, query: $query) {
+query ListGalleryScrapers {
+  listGalleryScrapers {
+    id
+    name
+    gallery {
+      urls
+      supported_scrapes
+    }
+  }
+}
+
+query ListMovieScrapers {
+  listMovieScrapers {
+    id
+    name
+    movie {
+      urls
+      supported_scrapes
+    }
+  }
+}
+
+query ScrapeSinglePerformer($source: ScraperSourceInput!, $input: ScrapeSinglePerformerInput!) {
+  scrapeSinglePerformer(source: $source, input: $input) {
     ...ScrapedPerformerData
   }
 }
 
-query ScrapePerformer($scraper_id: ID!, $scraped_performer: ScrapedPerformerInput!) {
-  scrapePerformer(scraper_id: $scraper_id, scraped_performer: $scraped_performer) {
+query ScrapeMultiPerformers($source: ScraperSourceInput!, $input: ScrapeMultiPerformersInput!) {
+  scrapeMultiPerformers(source: $source, input: $input) {
     ...ScrapedPerformerData
   }
 }
@@ -38,8 +60,14 @@ query ScrapePerformerURL($url: String!) {
   }
 }
 
-query ScrapeScene($scraper_id: ID!, $scene: SceneUpdateInput!) {
-  scrapeScene(scraper_id: $scraper_id, scene: $scene) {
+query ScrapeSingleScene($source: ScraperSourceInput!, $input: ScrapeSingleSceneInput!) {
+  scrapeSingleScene(source: $source, input: $input) {
+    ...ScrapedSceneData
+  }
+}
+
+query ScrapeMultiScenes($source: ScraperSourceInput!, $input: ScrapeMultiScenesInput!) {
+  scrapeMultiScenes(source: $source, input: $input) {
     ...ScrapedSceneData
   }
 }
@@ -47,5 +75,23 @@ query ScrapeScene($scraper_id: ID!, $scene: SceneUpdateInput!) {
 query ScrapeSceneURL($url: String!) {
   scrapeSceneURL(url: $url) {
     ...ScrapedSceneData
+  }
+}
+
+query ScrapeSingleGallery($source: ScraperSourceInput!, $input: ScrapeSingleGalleryInput!) {
+  scrapeSingleGallery(source: $source, input: $input) {
+    ...ScrapedGalleryData
+  }
+}
+
+query ScrapeGalleryURL($url: String!) {
+  scrapeGalleryURL(url: $url) {
+    ...ScrapedGalleryData
+  }
+}
+
+query ScrapeMovieURL($url: String!) {
+  scrapeMovieURL(url: $url) {
+    ...ScrapedMovieData
   }
 }

@@ -5,11 +5,15 @@ type SceneMarker {
   seconds: Float!
   primary_tag: Tag!
   tags: [Tag!]!
+  created_at: Time!
+  updated_at: Time!
 
   """The path to stream this marker"""
   stream: String! # Resolver
   """The path to the preview image for this marker"""
   preview: String! # Resolver
+  """The path to the screenshot image for this marker"""
+  screenshot: String! # Resolver
 }
 
 input SceneMarkerCreateInput {

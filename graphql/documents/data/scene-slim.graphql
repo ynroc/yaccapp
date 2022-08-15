@@ -1,12 +1,22 @@
 fragment SlimSceneData on Scene {
   id
   checksum
+  oshash
   title
   details
   url
   date
   rating
+  o_counter
+  organized
   path
+  phash
+  interactive
+  interactive_speed
+  captions {
+    language_code
+    caption_type
+  }
 
   file {
     size
@@ -26,6 +36,10 @@ fragment SlimSceneData on Scene {
     webp
     vtt
     chapters_vtt
+    sprite
+    funscript
+    interactive_heatmap
+    caption
   }
 
   scene_markers {
@@ -34,7 +48,7 @@ fragment SlimSceneData on Scene {
     seconds
   }
 
-  gallery {
+  galleries {
     id
     path
     title
@@ -46,6 +60,15 @@ fragment SlimSceneData on Scene {
     image_path
   }
 
+  movies {
+    movie {
+      id
+      name
+      front_image_path
+    }
+    scene_index
+  }
+
   tags {
     id
     name
@@ -54,7 +77,13 @@ fragment SlimSceneData on Scene {
   performers {
     id
     name
+    gender
     favorite
     image_path
+  }
+
+  stash_ids {
+    endpoint
+    stash_id
   }
 }

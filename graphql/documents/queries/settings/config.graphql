@@ -4,6 +4,17 @@ query Configuration {
   }
 }
 
-query Directories($path: String) {
-  directories(path: $path)
+query Directory($path: String) {
+  directory(path: $path) {
+      path
+      parent
+      directories
+  }
+}
+
+query ValidateStashBox($input: StashBoxInput!) {
+  validateStashBoxCredentials(input: $input) {
+    valid
+    status
+  }
 }

@@ -4,13 +4,26 @@ import (
 	"fmt"
 	"go/types"
 	"sort"
+	"strings"
 
 	"github.com/99designs/gqlgen/codegen/config"
 	"github.com/99designs/gqlgen/codegen/templates"
-	"github.com/99designs/gqlgen/internal/code"
 	"github.com/99designs/gqlgen/plugin"
-	"github.com/vektah/gqlparser/ast"
+	"github.com/vektah/gqlparser/v2/ast"
 )
+
+type BuildMutateHook = func(b *ModelBuild) *ModelBuild
+
+type FieldMutateHook = func(td *ast.Definition, fd *ast.FieldDefinition, f *Field) (*Field, error)
+
+// defaultFieldMutateHook is the default hook for the Plugin which applies the GoTagFieldHook.
+func defaultFieldMutateHook(td *ast.Definition, fd *ast.FieldDefinition, f *Field) (*Field, error) {
+	return GoTagFieldHook(td, fd, f)
+}
+
+func defaultBuildMutateHook(b *ModelBuild) *ModelBuild {
+	return b
+}
 
 type ModelBuild struct {
 	PackageName string
@@ -23,6 +36,7 @@ type ModelBuild struct {
 type Interface struct {
 	Description string
 	Name        string
+	Implements  []string
 }
 
 type Object struct {
@@ -51,10 +65,16 @@ type EnumValue struct {
 }
 
 func New() plugin.Plugin {
-	return &Plugin{}
+	return &Plugin{
+		MutateHook: defaultBuildMutateHook,
+		FieldHook:  defaultFieldMutateHook,
+	}
 }
 
-type Plugin struct{}
+type Plugin struct {
+	MutateHook BuildMutateHook
+	FieldHook  FieldMutateHook
+}
 
 var _ plugin.ConfigMutator = &Plugin{}
 
@@ -63,41 +83,27 @@ func (m *Plugin) Name() string {
 }
 
 func (m *Plugin) MutateConfig(cfg *config.Config) error {
-	if err := cfg.Check(); err != nil {
-		return err
-	}
-
-	schema, _, err := cfg.LoadSchema()
-	if err != nil {
-		return err
-	}
-
-	cfg.InjectBuiltins(schema)
-
-	binder, err := cfg.NewBinder(schema)
-	if err != nil {
-		return err
-	}
+	binder := cfg.NewBinder()
 
 	b := &ModelBuild{
 		PackageName: cfg.Model.Package,
 	}
 
-	for _, schemaType := range schema.Types {
+	for _, schemaType := range cfg.Schema.Types {
 		if cfg.Models.UserDefined(schemaType.Name) {
 			continue
 		}
-
 		switch schemaType.Kind {
 		case ast.Interface, ast.Union:
 			it := &Interface{
 				Description: schemaType.Description,
 				Name:        schemaType.Name,
+				Implements:  schemaType.Interfaces,
 			}
 
 			b.Interfaces = append(b.Interfaces, it)
 		case ast.Object, ast.InputObject:
-			if schemaType == schema.Query || schemaType == schema.Mutation || schemaType == schema.Subscription {
+			if schemaType == cfg.Schema.Query || schemaType == cfg.Schema.Mutation || schemaType == cfg.Schema.Subscription {
 				continue
 			}
 			it := &Object{
@@ -105,17 +111,31 @@ func (m *Plugin) MutateConfig(cfg *config.Config) error {
 				Name:        schemaType.Name,
 			}
 
-			for _, implementor := range schema.GetImplements(schemaType) {
-				it.Implements = append(it.Implements, implementor.Name)
+			// If Interface A implements interface B, and Interface C also implements interface B
+			// then both A and C have methods of B.
+			// The reason for checking unique is to prevent the same method B from being generated twice.
+			uniqueMap := map[string]bool{}
+			for _, implementor := range cfg.Schema.GetImplements(schemaType) {
+				if !uniqueMap[implementor.Name] {
+					it.Implements = append(it.Implements, implementor.Name)
+					uniqueMap[implementor.Name] = true
+				}
+				// for interface implements
+				for _, iface := range implementor.Interfaces {
+					if !uniqueMap[iface] {
+						it.Implements = append(it.Implements, iface)
+						uniqueMap[iface] = true
+					}
+				}
 			}
 
 			for _, field := range schemaType.Fields {
 				var typ types.Type
-				fieldDef := schema.Types[field.Type.Name()]
+				fieldDef := cfg.Schema.Types[field.Type.Name()]
 
 				if cfg.Models.UserDefined(field.Type.Name()) {
-					pkg, typeName := code.PkgAndType(cfg.Models[field.Type.Name()].Model[0])
-					typ, err = binder.FindType(pkg, typeName)
+					var err error
+					typ, err = binder.FindTypeFromName(cfg.Models[field.Type.Name()].Model[0])
 					if err != nil {
 						return err
 					}
@@ -169,12 +189,22 @@ func (m *Plugin) MutateConfig(cfg *config.Config) error {
 					typ = types.NewPointer(typ)
 				}
 
-				it.Fields = append(it.Fields, &Field{
+				f := &Field{
 					Name:        name,
 					Type:        typ,
 					Description: field.Description,
 					Tag:         `json:"` + field.Name + `"`,
-				})
+				}
+
+				if m.FieldHook != nil {
+					mf, err := m.FieldHook(schemaType, field, f)
+					if err != nil {
+						return fmt.Errorf("generror: field %v.%v: %w", it.Name, field.Name, err)
+					}
+					f = mf
+				}
+
+				it.Fields = append(it.Fields, f)
 			}
 
 			b.Models = append(b.Models, it)
@@ -196,7 +226,6 @@ func (m *Plugin) MutateConfig(cfg *config.Config) error {
 			b.Scalars = append(b.Scalars, schemaType.Name)
 		}
 	}
-
 	sort.Slice(b.Enums, func(i, j int) bool { return b.Enums[i].Name < b.Enums[j].Name })
 	sort.Slice(b.Models, func(i, j int) bool { return b.Models[i].Name < b.Models[j].Name })
 	sort.Slice(b.Interfaces, func(i, j int) bool { return b.Interfaces[i].Name < b.Interfaces[j].Name })
@@ -214,16 +243,60 @@ func (m *Plugin) MutateConfig(cfg *config.Config) error {
 		cfg.Models.Add(it, "github.com/99designs/gqlgen/graphql.String")
 	}
 
-	if len(b.Models) == 0 && len(b.Enums) == 0 {
+	if len(b.Models) == 0 && len(b.Enums) == 0 && len(b.Interfaces) == 0 && len(b.Scalars) == 0 {
 		return nil
 	}
 
-	return templates.Render(templates.Options{
+	if m.MutateHook != nil {
+		b = m.MutateHook(b)
+	}
+
+	err := templates.Render(templates.Options{
 		PackageName:     cfg.Model.Package,
 		Filename:        cfg.Model.Filename,
 		Data:            b,
 		GeneratedHeader: true,
+		Packages:        cfg.Packages,
 	})
+	if err != nil {
+		return err
+	}
+
+	// We may have generated code in a package we already loaded, so we reload all packages
+	// to allow packages to be compared correctly
+	cfg.ReloadAllPackages()
+
+	return nil
+}
+
+// GoTagFieldHook applies the goTag directive to the generated Field f. When applying the Tag to the field, the field
+// name is used when no value argument is present.
+func GoTagFieldHook(td *ast.Definition, fd *ast.FieldDefinition, f *Field) (*Field, error) {
+	args := make([]string, 0)
+	for _, goTag := range fd.Directives.ForNames("goTag") {
+		key := ""
+		value := fd.Name
+
+		if arg := goTag.Arguments.ForName("key"); arg != nil {
+			if k, err := arg.Value.Value(nil); err == nil {
+				key = k.(string)
+			}
+		}
+
+		if arg := goTag.Arguments.ForName("value"); arg != nil {
+			if v, err := arg.Value.Value(nil); err == nil {
+				value = v.(string)
+			}
+		}
+
+		args = append(args, key+":\""+value+"\"")
+	}
+
+	if len(args) > 0 {
+		f.Tag = f.Tag + " " + strings.Join(args, " ")
+	}
+
+	return f, nil
 }
 
 func isStruct(t types.Type) bool {

@@ -2,7 +2,7 @@
 name: Bug report
 about: Create a report to help us improve
 title: "[Bug Report] Short Form Subject (50 Chars or less)"
-labels: help wanted
+labels: bug report
 assignees: ''
 
 ---
@@ -22,6 +22,8 @@ A clear and concise description of what you expected to happen.
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem please ensure that your screenshots are SFW or at least appropriately censored.
+
+**Stash Version: (from Settings -> About):**
 
 **Desktop (please complete the following information):**
  - OS: [e.g. iOS]

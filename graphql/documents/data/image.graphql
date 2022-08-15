@@ -1,0 +1,38 @@
+fragment ImageData on Image {
+  id
+  checksum
+  title
+  rating
+  organized
+  o_counter
+  path
+  created_at
+  updated_at
+
+  file {
+    size
+    width
+    height
+  }
+
+  paths {
+    thumbnail
+    image
+  }
+
+  galleries {
+    ...GalleryData
+  }
+
+  studio {
+    ...SlimStudioData
+  }
+  
+  tags {
+    ...SlimTagData
+  }
+
+  performers {
+    ...PerformerData
+  }
+}

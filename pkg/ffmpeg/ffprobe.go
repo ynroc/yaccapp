@@ -5,24 +5,15 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/stashapp/stash/pkg/exec"
+	"github.com/stashapp/stash/pkg/logger"
 )
 
-var ValidCodecs = []string{"h264", "h265", "vp8", "vp9"}
-
-func IsValidCodec(codecName string) bool {
-	for _, c := range ValidCodecs {
-		if c == codecName {
-			return true
-		}
-	}
-	return false
-}
-
+// VideoFile represents the ffprobe output for a video file.
 type VideoFile struct {
 	JSON        FFProbeJSON
 	AudioStream *FFProbeStream
@@ -44,18 +35,46 @@ type VideoFile struct {
 	Height       int
 	FrameRate    float64
 	Rotation     int64
+	FrameCount   int64
 
 	AudioCodec string
 }
 
-// Execute exec command and bind result to struct.
-func NewVideoFile(ffprobePath string, videoPath string) (*VideoFile, error) {
+// TranscodeScale calculates the dimension scaling for a transcode, where maxSize is the maximum size of the longest dimension of the input video.
+// If no scaling is required, then returns 0, 0.
+// Returns -2 for the dimension that will scale to maintain aspect ratio.
+func (v *VideoFile) TranscodeScale(maxSize int) (int, int) {
+	// get the smaller dimension of the video file
+	videoSize := v.Height
+	if v.Width < videoSize {
+		videoSize = v.Width
+	}
+
+	// if our streaming resolution is larger than the video dimension
+	// or we are streaming the original resolution, then just set the
+	// input width
+	if maxSize >= videoSize || maxSize == 0 {
+		return 0, 0
+	}
+
+	// we're setting either the width or height
+	// we'll set the smaller dimesion
+	if v.Width > v.Height {
+		// set the height
+		return -2, maxSize
+	}
+
+	return maxSize, -2
+}
+
+// FFProbe provides an interface to the ffprobe executable.
+type FFProbe string
+
+// NewVideoFile runs ffprobe on the given path and returns a VideoFile.
+func (f *FFProbe) NewVideoFile(videoPath string) (*VideoFile, error) {
 	args := []string{"-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-show_error", videoPath}
-	//// Extremely slow on windows for some reason
-	//if runtime.GOOS != "windows" {
-	//	args = append(args, "-count_frames")
-	//}
-	out, err := exec.Command(ffprobePath, args...).Output()
+	cmd := exec.Command(string(*f), args...)
+	out, err := cmd.Output()
 
 	if err != nil {
 		return nil, fmt.Errorf("FFProbe encountered an error with <%s>.\nError JSON:\n%s\nError: %s", videoPath, string(out), err.Error())
@@ -63,15 +82,34 @@ func NewVideoFile(ffprobePath string, videoPath string) (*VideoFile, error) {
 
 	probeJSON := &FFProbeJSON{}
 	if err := json.Unmarshal(out, probeJSON); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error unmarshalling video data for <%s>: %s", videoPath, err.Error())
 	}
 
 	return parse(videoPath, probeJSON)
 }
 
+// GetReadFrameCount counts the actual frames of the video file.
+// Used when the frame count is missing or incorrect.
+func (f *FFProbe) GetReadFrameCount(path string) (int64, error) {
+	args := []string{"-v", "quiet", "-print_format", "json", "-count_frames", "-show_format", "-show_streams", "-show_error", path}
+	out, err := exec.Command(string(*f), args...).Output()
+
+	if err != nil {
+		return 0, fmt.Errorf("FFProbe encountered an error with <%s>.\nError JSON:\n%s\nError: %s", path, string(out), err.Error())
+	}
+
+	probeJSON := &FFProbeJSON{}
+	if err := json.Unmarshal(out, probeJSON); err != nil {
+		return 0, fmt.Errorf("error unmarshalling video data for <%s>: %s", path, err.Error())
+	}
+
+	fc, err := parse(path, probeJSON)
+	return fc.FrameCount, err
+}
+
 func parse(filePath string, probeJSON *FFProbeJSON) (*VideoFile, error) {
 	if probeJSON == nil {
-		return nil, fmt.Errorf("failed to get ffprobe json")
+		return nil, fmt.Errorf("failed to get ffprobe json for <%s>", filePath)
 	}
 
 	result := &VideoFile{}
@@ -80,39 +118,45 @@ func parse(filePath string, probeJSON *FFProbeJSON) (*VideoFile, error) {
 	if result.JSON.Error.Code != 0 {
 		return nil, fmt.Errorf("ffprobe error code %d: %s", result.JSON.Error.Code, result.JSON.Error.String)
 	}
-	//} else if (ffprobeResult.stderr.includes("could not find codec parameters")) {
-	//	throw new Error(`FFProbe [${filePath}] -> Could not find codec parameters`);
-	//} // TODO nil_or_unsupported.(video_stream) && nil_or_unsupported.(audio_stream)
 
 	result.Path = filePath
 	result.Title = probeJSON.Format.Tags.Title
 
-	if result.Title == "" {
-		// default title to filename
-		result.SetTitleFromPath()
-	}
-
 	result.Comment = probeJSON.Format.Tags.Comment
-
 	result.Bitrate, _ = strconv.ParseInt(probeJSON.Format.BitRate, 10, 64)
+
 	result.Container = probeJSON.Format.FormatName
 	duration, _ := strconv.ParseFloat(probeJSON.Format.Duration, 64)
 	result.Duration = math.Round(duration*100) / 100
-	fileStat, _ := os.Stat(filePath)
+	fileStat, err := os.Stat(filePath)
+	if err != nil {
+		statErr := fmt.Errorf("error statting file <%s>: %w", filePath, err)
+		logger.Errorf("%v", statErr)
+		return nil, statErr
+	}
 	result.Size = fileStat.Size()
 	result.StartTime, _ = strconv.ParseFloat(probeJSON.Format.StartTime, 64)
 	result.CreationTime = probeJSON.Format.Tags.CreationTime.Time
 
-	audioStream := result.GetAudioStream()
+	audioStream := result.getAudioStream()
 	if audioStream != nil {
 		result.AudioCodec = audioStream.CodecName
 		result.AudioStream = audioStream
 	}
 
-	videoStream := result.GetVideoStream()
+	videoStream := result.getVideoStream()
 	if videoStream != nil {
 		result.VideoStream = videoStream
 		result.VideoCodec = videoStream.CodecName
+		result.FrameCount, _ = strconv.ParseInt(videoStream.NbFrames, 10, 64)
+		if videoStream.NbReadFrames != "" { // if ffprobe counted the frames use that instead
+			fc, _ := strconv.ParseInt(videoStream.NbReadFrames, 10, 64)
+			if fc > 0 {
+				result.FrameCount, _ = strconv.ParseInt(videoStream.NbReadFrames, 10, 64)
+			} else {
+				logger.Debugf("[ffprobe] <%s> invalid Read Frames count", videoStream.NbReadFrames)
+			}
+		}
 		result.VideoBitrate, _ = strconv.ParseInt(videoStream.BitRate, 10, 64)
 		var framerate float64
 		if strings.Contains(videoStream.AvgFrameRate, "/") {
@@ -136,7 +180,7 @@ func parse(filePath string, probeJSON *FFProbeJSON) (*VideoFile, error) {
 	return result, nil
 }
 
-func (v *VideoFile) GetAudioStream() *FFProbeStream {
+func (v *VideoFile) getAudioStream() *FFProbeStream {
 	index := v.getStreamIndex("audio", v.JSON)
 	if index != -1 {
 		return &v.JSON.Streams[index]
@@ -144,7 +188,7 @@ func (v *VideoFile) GetAudioStream() *FFProbeStream {
 	return nil
 }
 
-func (v *VideoFile) GetVideoStream() *FFProbeStream {
+func (v *VideoFile) getVideoStream() *FFProbeStream {
 	index := v.getStreamIndex("video", v.JSON)
 	if index != -1 {
 		return &v.JSON.Streams[index]
@@ -153,15 +197,21 @@ func (v *VideoFile) GetVideoStream() *FFProbeStream {
 }
 
 func (v *VideoFile) getStreamIndex(fileType string, probeJSON FFProbeJSON) int {
+	ret := -1
 	for i, stream := range probeJSON.Streams {
-		if stream.CodecType == fileType {
-			return i
+		// skip cover art/thumbnails
+		if stream.CodecType == fileType && stream.Disposition.AttachedPic == 0 {
+			// prefer default stream
+			if stream.Disposition.Default == 1 {
+				return i
+			}
+
+			// backwards compatible behaviour - fallback to first matching stream
+			if ret == -1 {
+				ret = i
+			}
 		}
 	}
 
-	return -1
-}
-
-func (v *VideoFile) SetTitleFromPath() {
-	v.Title = filepath.Base(v.Path)
+	return ret
 }

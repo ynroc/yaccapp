@@ -7,14 +7,17 @@
 {{ reserveImport "errors"  }}
 {{ reserveImport "bytes"  }}
 
-{{ reserveImport "github.com/vektah/gqlparser" }}
-{{ reserveImport "github.com/vektah/gqlparser/ast" }}
+{{ reserveImport "github.com/vektah/gqlparser/v2" }}
+{{ reserveImport "github.com/vektah/gqlparser/v2/ast" }}
 {{ reserveImport "github.com/99designs/gqlgen/graphql" }}
 {{ reserveImport "github.com/99designs/gqlgen/graphql/introspection" }}
 
 {{- range $model := .Interfaces }}
 	{{ with .Description }} {{.|prefixLines "// "}} {{ end }}
 	type {{.Name|go }} interface {
+		{{- range $impl := .Implements }}
+			{{ $impl|go }}
+		{{- end }}
 		Is{{.Name|go }}()
 	}
 {{- end }}
@@ -36,7 +39,7 @@
 {{- end}}
 
 {{ range $enum := .Enums }}
-	{{ with .Description|go }} {{.|prefixLines "// "}} {{end}}
+	{{ with .Description }} {{.|prefixLines "// "}} {{end}}
 	type {{.Name|go }} string
 	const (
 	{{- range $value := .Values}}
