@@ -1,22 +1,38 @@
 package introspection
 
 import (
+	"sort"
 	"strings"
 
-	"github.com/vektah/gqlparser/ast"
+	"github.com/vektah/gqlparser/v2/ast"
 )
 
 type Schema struct {
 	schema *ast.Schema
 }
 
+func (s *Schema) Description() *string {
+	if s.schema.Description == "" {
+		return nil
+	}
+	return &s.schema.Description
+}
+
 func (s *Schema) Types() []Type {
-	var types []Type
+	typeIndex := map[string]Type{}
+	typeNames := make([]string, 0, len(s.schema.Types))
 	for _, typ := range s.schema.Types {
 		if strings.HasPrefix(typ.Name, "__") {
 			continue
 		}
-		types = append(types, *WrapTypeFromDef(s.schema, typ))
+		typeNames = append(typeNames, typ.Name)
+		typeIndex[typ.Name] = *WrapTypeFromDef(s.schema, typ)
+	}
+	sort.Strings(typeNames)
+
+	types := make([]Type, len(typeNames))
+	for i, t := range typeNames {
+		types[i] = typeIndex[t]
 	}
 	return types
 }
@@ -34,35 +50,44 @@ func (s *Schema) SubscriptionType() *Type {
 }
 
 func (s *Schema) Directives() []Directive {
-	var res []Directive
+	dIndex := map[string]Directive{}
+	dNames := make([]string, 0, len(s.schema.Directives))
 
 	for _, d := range s.schema.Directives {
-		res = append(res, s.directiveFromDef(d))
+		dNames = append(dNames, d.Name)
+		dIndex[d.Name] = s.directiveFromDef(d)
+	}
+	sort.Strings(dNames)
+
+	res := make([]Directive, len(dNames))
+	for i, d := range dNames {
+		res[i] = dIndex[d]
 	}
 
 	return res
 }
 
 func (s *Schema) directiveFromDef(d *ast.DirectiveDefinition) Directive {
-	var locs []string
-	for _, loc := range d.Locations {
-		locs = append(locs, string(loc))
+	locs := make([]string, len(d.Locations))
+	for i, loc := range d.Locations {
+		locs[i] = string(loc)
 	}
 
-	var args []InputValue
-	for _, arg := range d.Arguments {
-		args = append(args, InputValue{
+	args := make([]InputValue, len(d.Arguments))
+	for i, arg := range d.Arguments {
+		args[i] = InputValue{
 			Name:         arg.Name,
-			Description:  arg.Description,
+			description:  arg.Description,
 			DefaultValue: defaultValue(arg.DefaultValue),
 			Type:         WrapTypeFromType(s.schema, arg.Type),
-		})
+		}
 	}
 
 	return Directive{
-		Name:        d.Name,
-		Description: d.Description,
-		Locations:   locs,
-		Args:        args,
+		Name:         d.Name,
+		description:  d.Description,
+		Locations:    locs,
+		Args:         args,
+		IsRepeatable: d.IsRepeatable,
 	}
 }

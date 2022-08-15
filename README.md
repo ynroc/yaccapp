@@ -1,109 +1,73 @@
 # Stash
+https://stashapp.cc
 
-[![Build Status](https://travis-ci.org/stashapp/stash.svg?branch=master)](https://travis-ci.org/stashapp/stash)
+[![Build](https://github.com/stashapp/stash/actions/workflows/build.yml/badge.svg?branch=develop&event=push)](https://github.com/stashapp/stash/actions/workflows/build.yml)
+[![Docker pulls](https://img.shields.io/docker/pulls/stashapp/stash.svg)](https://hub.docker.com/r/stashapp/stash 'DockerHub')
 [![Go Report Card](https://goreportcard.com/badge/github.com/stashapp/stash)](https://goreportcard.com/report/github.com/stashapp/stash)
 [![Discord](https://img.shields.io/discord/559159668438728723.svg?logo=discord)](https://discord.gg/2TsNFKt)
 
-**Stash is a Go app which organizes and serves your porn.**
+### **Stash is a self-hosted webapp written in Go which organizes and serves your porn.**
+![demo image](docs/readme_assets/demo_image.png)
 
-See a demo [here](https://vimeo.com/275537038) (password is stashapp).
+* Stash gathers information about videos in your collection from the internet, and is extensible through the use of community-built plugins for a large number of content producers and sites.
+* Stash supports a wide variety of both video and image formats.
+* You can tag videos and find them later.
+* Stash provides statistics about performers, tags, studios and more.
 
-# Docker install
+You can [watch a SFW demo video](https://vimeo.com/545323354) to see it in action.
 
-Follow [this README.md in the docker directory.](docker/production/README.md)
+For further information you can [read the in-app manual](ui/v2.5/src/docs/en).
 
-# Bare-metal Install
+# Installing Stash
 
-Stash supports macOS, Windows, and Linux.  Download the [latest release here](https://github.com/stashapp/stash/releases).
+<img src="docs/readme_assets/windows_logo.svg" width="100%" height="75"> Windows | <img src="docs/readme_assets/mac_logo.svg" width="100%" height="75"> MacOS| <img src="docs/readme_assets/linux_logo.svg" width="100%" height="75"> Linux | <img src="docs/readme_assets/docker_logo.svg" width="100%" height="75"> Docker
+:---:|:---:|:---:|:---:
+[Latest Release](https://github.com/stashapp/stash/releases/latest/download/stash-win.exe) <br /> <sup><sub>[Development Preview](https://github.com/stashapp/stash/releases/download/latest_develop/stash-win.exe)</sub></sup> | [Latest Release (Apple Silicon)](https://github.com/stashapp/stash/releases/latest/download/stash-macos-applesilicon) <br /> <sup><sub>[Development Preview (Apple Silicon)](https://github.com/stashapp/stash/releases/download/latest_develop/stash-macos-applesilicon)</sub></sup> <br />[Latest Release (Intel)](https://github.com/stashapp/stash/releases/latest/download/stash-macos-intel) <br /> <sup><sub>[Development Preview (Intel)](https://github.com/stashapp/stash/releases/download/latest_develop/stash-macos-intel)</sub></sup> | [Latest Release (amd64)](https://github.com/stashapp/stash/releases/latest/download/stash-linux) <br /> <sup><sub>[Development Preview (amd64)](https://github.com/stashapp/stash/releases/download/latest_develop/stash-linux)</sub></sup> <br /> [More Architectures...](https://github.com/stashapp/stash/releases/latest) | [Instructions](docker/production/README.md) <br /> <sup><sub> [Sample docker-compose.yml](docker/production/docker-compose.yml)</sub></sup>
 
-Run the executable (double click the exe on windows or run `./stash-osx` / `./stash-linux` from the terminal on macOS / Linux) and navigate to either https://localhost:9999 or http://localhost:9998 to get started.
-
-*Note for Windows users:* Running the app might present a security prompt since the binary isn't signed yet.  Just click more info and then the "run anyway" button.
-
+## First Run
+#### Windows Users: Security Prompt
+Running the app might present a security prompt since the binary isn't yet signed.  Bypass this by clicking "more info" and then the "run anyway" button.
 #### FFMPEG
-
-If stash is unable to find or download FFMPEG then download it yourself from the link for your platform:
-
-* [macOS](https://ffmpeg.zeranoe.com/builds/macos64/static/ffmpeg-4.0-macos64-static.zip)
-* [Windows](https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-4.0-win64-static.zip)
-* [Linux](https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz)
-
-The `ffmpeg(.exe)` and `ffprobe(.exe)` files should be placed in `~/.stash` on macOS / Linux or `C:\Users\YourUsername\.stash` on Windows.
+Stash requires ffmpeg. If you don't have it installed, Stash will download a copy for you. It is recommended that Linux users install `ffmpeg` from their distro's package manager.
 
 # Usage
 
-## CLI
+## Quickstart Guide
+Stash is a web-based application. Once the application is running, the interface is available (by default) from http://localhost:9999.
 
-Stash provides some command line options.  See what is currently available by running `stash --help`.
+On first run, Stash will prompt you for some configuration options and media directories to index, called "Scanning" in Stash. After scanning, your media will be available for browsing, curating, editing, and tagging.
 
-For example, to run stash locally on port 80 run it like this (OSX / Linux) `stash --host 127.0.0.1 --port 80`
+Stash can pull metadata (performers, tags, descriptions, studios, and more) directly from many sites through the use of [scrapers](https://github.com/stashapp/stash/tree/develop/ui/v2.5/src/docs/en/Scraping.md), which integrate directly into Stash.
 
-## SSL (HTTPS)
+Many community-maintained scrapers are available for download at the [Community Scrapers Collection](https://github.com/stashapp/CommunityScrapers). The community also maintains StashDB, a crowd-sourced repository of scene, studio, and performer information, that can automatically identify much of a typical media collection. Inquire in the Discord for details. Identifying an entire collection will typically require a mix of multiple sources. 
 
-Stash supports HTTPS with some additional work.  First you must generate a SSL certificate and key combo.  Here is an example using openssl:
+<sub>StashDB is the canonical instance of our open source metadata API, [stash-box](https://github.com/stashapp/stash-box).</sub>
 
-`openssl req -x509 -newkey rsa:4096 -sha256 -days 7300 -nodes -keyout stash.key -out stash.crt -extensions san -config <(echo "[req]"; echo distinguished_name=req; echo "[san]"; echo subjectAltName=DNS:stash.server,IP:127.0.0.1) -subj /CN=stash.server`
+# Translation
+[![Translate](https://translate.stashapp.cc/widgets/stash/-/stash-desktop-client/svg-badge.svg)](https://translate.stashapp.cc/engage/stash/)
+🇧🇷 🇨🇳 🇩🇰 🇳🇱 🇬🇧 🇫🇮 🇫🇷 🇩🇪 🇮🇹 🇯🇵 🇰🇷 🇵🇱 🇪🇸 🇸🇪 🇹🇼 🇹🇷
 
-This command would need customizing for your environment.  [This link](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl) might be useful.
+Stash is available in 16 languages (so far!) and it could be in your language too. If you want to help us translate Stash into your language, you can make an account at [translate.stashapp.cc](https://translate.stashapp.cc/projects/stash/stash-desktop-client/) to get started contributing new languages or improving existing ones. Thanks!
 
-Once you have a certificate and key file name them `stash.crt` and `stash.key` and place them in the `~/.stash` directory.  Stash detects these and starts up using HTTPS rather than HTTP.
+# Support (FAQ)
 
-# FAQ
+Answers to other Frequently Asked Questions can be found [on our Wiki](https://github.com/stashapp/stash/wiki/FAQ)
 
-> I'm unable to run the app on OSX or Linux
+For issues not addressed there, there are a few options.
 
-Try running `chmod u+x stash-osx` or `chmod u+x stash-linux` to make the file executable.
+* Read the [Wiki](https://github.com/stashapp/stash/wiki)
+* Check the in-app documentation, in the top right corner of the app (also available [here](https://github.com/stashapp/stash/tree/develop/ui/v2.5/src/docs/en)
+* Join the [Discord server](https://discord.gg/2TsNFKt), where the community can offer support.
 
-> I have a question not answered here.
+# Customization
 
-Join the [Discord server](https://discord.gg/2TsNFKt).
+## Themes and CSS Customization
+There is a [directory of community-created themes](https://github.com/stashapp/stash/wiki/Themes) on our Wiki, along with instructions on how to install them.
 
-# Development
+You can also make Stash interface fit your desired style with [Custom CSS snippets](https://github.com/stashapp/stash/wiki/Custom-CSS-snippets).
 
-## Install
+# For Developers
 
-* [Revive](https://github.com/mgechev/revive) - Configurable linter
-    * Go Install: `go get github.com/mgechev/revive`
-* [Packr2](https://github.com/gobuffalo/packr/tree/v2.0.2/v2) - Static asset bundler
-    * Go Install: `go get github.com/gobuffalo/packr/v2/packr2@v2.0.2`
-    * [Binary Download](https://github.com/gobuffalo/packr/releases)
-* [Yarn](https://yarnpkg.com/en/docs/install) - Yarn package manager
+Pull requests are welcome! 
 
-NOTE: You may need to run the `go get` commands outside the project directory to avoid modifying the projects module file.
-
-## Environment
-
-### macOS
-
-TODO
-
-### Windows
-
-1. Download and install [Go for Windows](https://golang.org/dl/)
-2. Download and install [MingW](https://sourceforge.net/projects/mingw-w64/)
-3. Search for "advanced system settings" and open the system properties dialog.
-    1. Click the `Environment Variables` button
-    2. Add `GO111MODULE=on`
-    3. Under system variables find the `Path`.  Edit and add `C:\Program Files\mingw-w64\*\mingw64\bin` (replace * with the correct path).
-
-## Commands
-
-* `make generate` - Generate Go GraphQL and packr2 files
-* `make build` - Builds the binary (make sure to build the UI as well... see below)
-* `make ui` - Builds the frontend
-* `make vet` - Run `go vet`
-* `make lint` - Run the linter
-
-## Building a release
-
-1. Run `make generate` to create generated files 
-2. Run `make ui` to compile the frontend
-3. Run `make build` to build the executable for your current platform
-
-## Cross compiling
-
-This project uses a modification of [this](https://github.com/bep/dockerfiles/tree/master/ci-goreleaser) docker container to create an environment
-where the app can be cross-compiled.  This process is kicked off by CI via the `scripts/cross-compile.sh` script.  Run the following
-command to open a bash shell to the container to poke around:
-
-`docker run --rm --mount type=bind,source="$(pwd)",target=/stash -w /stash -i -t stashappdev/compiler:latest /bin/bash`
+See [Development](docs/DEVELOPMENT.md) and [Contributing](docs/CONTRIBUTING.md) for information on working with the codebase, getting a local development setup, and contributing changes.

@@ -1,31 +1,9 @@
-query MetadataImport {
-  metadataImport
-}
-
-query MetadataExport {
-  metadataExport
-}
-
-query MetadataScan($input: ScanMetadataInput!) {
-  metadataScan(input: $input)
-}
-
-query MetadataGenerate($input: GenerateMetadataInput!) {
-  metadataGenerate(input: $input)
-}
-
-query MetadataClean {
-  metadataClean
-}
-
-query JobStatus {
-  jobStatus {
-    progress
+query SystemStatus {
+  systemStatus {
+    databaseSchema
+    databasePath
+    appSchema
     status
-    message
+    configPath
   }
-}
-
-query StopJob {
-  stopJob
 }

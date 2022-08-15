@@ -1,5 +1,32 @@
 fragment SlimPerformerData on Performer {
   id
   name
+  gender
+  url
+  twitter
+  instagram
   image_path
+  favorite
+  ignore_auto_tag
+  country
+  birthdate
+  ethnicity
+  hair_color
+  eye_color
+  height
+  fake_tits
+  career_length
+  tattoos
+  piercings
+  tags {
+    id
+    name
+  }
+  stash_ids {
+    endpoint
+    stash_id
+  }
+  rating
+  death_date
+  weight
 }

@@ -22,3 +22,13 @@ type ScrapedItem struct {
 	CreatedAt       SQLiteTimestamp `db:"created_at" json:"created_at"`
 	UpdatedAt       SQLiteTimestamp `db:"updated_at" json:"updated_at"`
 }
+
+type ScrapedItems []*ScrapedItem
+
+func (s *ScrapedItems) Append(o interface{}) {
+	*s = append(*s, o.(*ScrapedItem))
+}
+
+func (s *ScrapedItems) New() interface{} {
+	return &ScrapedItem{}
+}

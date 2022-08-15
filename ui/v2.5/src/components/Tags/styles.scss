@@ -1,0 +1,45 @@
+.tag-list {
+  &-row {
+    margin: 0.5rem 0;
+  }
+
+  &-button {
+    margin: 0 0.5rem;
+    width: 8rem;
+  }
+
+  &-anchor {
+    color: $text-color;
+  }
+
+  &-count {
+    display: inline-block;
+    margin: 0 0.5rem;
+    min-width: 6rem;
+  }
+}
+
+.tag-card {
+  padding: 0.5rem;
+
+  &-image {
+    display: block;
+    margin: 0 auto;
+    object-fit: contain;
+  }
+}
+
+.tag-details {
+  .logo {
+    max-height: 50vh;
+    max-width: 100%;
+  }
+
+  .logo-container {
+    margin-bottom: 4rem;
+  }
+}
+
+#tag-merge-menu .dropdown-item {
+  align-items: center;
+}

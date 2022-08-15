@@ -1,249 +1,135 @@
 package scraper
 
 import (
-	"fmt"
-	"github.com/PuerkitoBio/goquery"
+	"strings"
+
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
-	"net/http"
-	"net/url"
-	"regexp"
-	"strings"
-	"time"
 )
 
-func GetPerformerNames(q string) ([]string, error) {
-	// Request the HTML page.
-	queryURL := "https://www.freeones.com/suggestions.php?q=" + url.PathEscape(q) + "&t=1"
-	res, err := http.Get(queryURL)
+// FreeonesScraperID is the scraper ID for the built-in Freeones scraper
+const FreeonesScraperID = "builtin_freeones"
+
+// 537: stolen from: https://github.com/stashapp/CommunityScrapers/blob/master/scrapers/FreeonesCommunity.yml
+const freeonesScraperConfig = `
+name: Freeones
+performerByName:
+  action: scrapeXPath
+  queryURL: https://www.freeones.com/babes?q={}&v=teasers&s=relevance&l=96&m%5BcanPreviewFeatures%5D=0
+  scraper: performerSearch
+performerByURL:
+  - action: scrapeXPath
+    url:
+      - freeones.xxx
+      - freeones.com
+    scraper: performerScraper
+
+xPathScrapers:
+  performerSearch:
+    performer:
+      Name: //div[@id="search-result"]//p[@data-test="subject-name"]/text()
+      URL:
+        selector: //div[@id="search-result"]//div[@data-test="teaser-subject"]/a/@href
+        postProcess:
+          - replace:
+              - regex: ^
+                with: https://www.freeones.com
+              - regex: /feed$
+                with: /bio
+
+  performerScraper:
+    performer:
+      Name:
+        selector: //h1
+        postProcess:
+          - replace:
+              - regex: \sBio\s*$
+                with: ""
+      URL: //link[@rel="alternate" and @hreflang="x-default"]/@href
+      Twitter: //a[not(starts-with(@href,'https://twitter.com/FreeOnes'))][contains(@href,'twitter.com/')]/@href
+      Instagram: //a[contains(@href,'instagram.com/')]/@href
+      Birthdate:
+        selector: //span[contains(text(),'Born On')]
+        postProcess:
+          - replace:
+              - regex: Born On
+                with:
+          - parseDate: January 2, 2006
+      Ethnicity:
+        selector: //a[@data-test="link_ethnicity"]/span/text()
+        postProcess:
+          - map:
+              Asian: Asian
+              Caucasian: White
+              Black: Black
+              Latin: Hispanic
+      Country: //a[@data-test="link-country"]/span/text()
+      EyeColor: //span[text()='Eye Color']/following-sibling::span/a
+      Height:
+        selector: //span[text()='Height']/following-sibling::span/a
+        postProcess:
+          - replace:
+              - regex: \D+[\s\S]+
+                with: ""
+          - map:
+              Unknown: ""
+      Measurements:
+        selector: //span[text()='Measurements']/following-sibling::span/span/a
+        concat: " - "
+        postProcess:
+          - map:
+              Unknown: ""
+      FakeTits:
+        selector: //span[text()='Boobs']/following-sibling::span/a
+        postProcess:
+          - map:
+              Unknown: ""
+              Fake: "Yes"
+              Natural: "No"
+      CareerLength:
+        selector: //div[contains(@class,'timeline-horizontal')]//p[@class='m-0']
+        concat: "-"
+      Aliases: //p[@data-test='p_aliases']/text()
+      Tattoos:
+        selector: //span[text()='Tattoos']/following-sibling::span/span
+        postProcess:
+          - map:
+              Unknown: ""
+      Piercings:
+        selector: //span[text()='Piercings']/following-sibling::span/span
+        postProcess:
+          - map:
+              Unknown: ""
+      Image:
+        selector: //div[contains(@class,'image-container')]//a/img/@src
+      Gender:
+        fixed: "Female"
+      Details: //div[@data-test="biography"]
+      DeathDate:
+        selector: //div[contains(text(),'Passed away on')]
+        postProcess:
+          - replace:
+              - regex: Passed away on (.+) at the age of \d+
+                with: $1
+          - parseDate: January 2, 2006
+      HairColor: //span[text()='Hair Color']/following-sibling::span/a
+      Weight:
+        selector: //span[text()='Weight']/following-sibling::span/a
+        postProcess:
+        - replace:
+            - regex: \D+[\s\S]+
+              with: ""
+
+# Last updated April 13, 2021
+`
+
+func getFreeonesScraper(txnManager models.TransactionManager, globalConfig GlobalConfig) scraper {
+	yml := freeonesScraperConfig
+
+	c, err := loadConfigFromYAML(FreeonesScraperID, strings.NewReader(yml))
 	if err != nil {
-		logger.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
+		logger.Fatalf("Error loading builtin freeones scraper: %s", err.Error())
 	}
 
-	// Load the HTML document
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Find the performers
-	var performerNames []string
-	doc.Find(".suggestion").Each(func(i int, s *goquery.Selection) {
-		name := strings.Trim(s.Text(), " ")
-		performerNames = append(performerNames, name)
-	})
-
-	return performerNames, nil
-}
-
-func GetPerformer(performerName string) (*models.ScrapedPerformer, error) {
-	queryURL := "https://www.freeones.com/search/?t=1&q=" + url.PathEscape(performerName) + "&view=thumbs"
-	res, err := http.Get(queryURL)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
-	}
-
-	// Load the HTML document
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	performerLink := doc.Find("div.Block3 a").FilterFunction(func(i int, s *goquery.Selection) bool {
-		href, _ := s.Attr("href")
-		if href == "/html/j_links/Jenna_Leigh_c/" || href == "/html/a_links/Alexa_Grace_c/" {
-			return false
-		}
-		if strings.ToLower(s.Text()) == strings.ToLower(performerName) {
-			return true
-		}
-		alias := s.ParentsFiltered(".babeNameBlock").Find(".babeAlias").First();
-		if strings.Contains( strings.ToLower(alias.Text()), strings.ToLower(performerName) ) {
-			return true
-		}
-		return false
-	})
-
-	href, _ := performerLink.Attr("href")
-	href = strings.TrimSuffix(href, "/")
-	regex := regexp.MustCompile(`.+_links\/(.+)`)
-	matches := regex.FindStringSubmatch(href)
-	if len(matches) < 2 {
-		return nil, fmt.Errorf("No matches found in %s",href)
-	}
-
-	href = strings.Replace(href, matches[1], "bio_"+matches[1]+".php", -1)
-	href = "https://www.freeones.com" + href
-	
-	bioRes, err := http.Get(href)
-	if err != nil {
-		return nil, err
-	}
-	defer bioRes.Body.Close()
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
-	}
-
-	// Load the HTML document
-	bioDoc, err := goquery.NewDocumentFromReader(bioRes.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	params := bioDoc.Find(".paramvalue")
-	paramIndexes := getIndexes(bioDoc)
-
-	result := models.ScrapedPerformer{}
-
-	performerURL := bioRes.Request.URL.String()
-	result.URL = &performerURL
-
-	name := paramValue(params, paramIndexes["name"])
-	result.Name = &name
-
-	ethnicity := getEthnicity(paramValue(params, paramIndexes["ethnicity"]))
-	result.Ethnicity = &ethnicity
-
-	country := paramValue(params, paramIndexes["country"])
-	result.Country = &country
-
-	eyeColor := paramValue(params, paramIndexes["eye_color"])
-	result.EyeColor = &eyeColor
-
-	measurements := paramValue(params, paramIndexes["measurements"])
-	result.Measurements = &measurements
-
-	fakeTits := paramValue(params, paramIndexes["fake_tits"])
-	result.FakeTits = &fakeTits
-
-	careerLength := paramValue(params, paramIndexes["career_length"])
-	careerRegex := regexp.MustCompile(`\([\s\S]*`)
-	careerLength = careerRegex.ReplaceAllString(careerLength, "")
-	careerLength = trim(careerLength)
-	result.CareerLength = &careerLength
-
-	tattoos := paramValue(params, paramIndexes["tattoos"])
-	result.Tattoos = &tattoos
-
-	piercings := paramValue(params, paramIndexes["piercings"])
-	result.Piercings = &piercings
-
-	aliases := paramValue(params, paramIndexes["aliases"])
-	result.Aliases = &aliases
-
-	birthdate := paramValue(params, paramIndexes["birthdate"])
-	birthdateRegex := regexp.MustCompile(` \(\d* years old\)`)
-	birthdate = birthdateRegex.ReplaceAllString(birthdate, "")
-	birthdate = trim(birthdate)
-	if birthdate != "Unknown" && len(birthdate) > 0 {
-		t, _ := time.Parse("January _2, 2006", birthdate) // TODO
-		formattedBirthdate := t.Format("2006-01-02")
-		result.Birthdate = &formattedBirthdate
-	}
-
-	height := paramValue(params, paramIndexes["height"])
-	heightRegex := regexp.MustCompile(`heightcm = "(.*)"\;`)
-	heightMatches := heightRegex.FindStringSubmatch(height)
-	if len(heightMatches) > 1 {
-		result.Height = &heightMatches[1]
-	}
-
-	twitterElement := bioDoc.Find(".twitter a")
-	twitterHref, _ := twitterElement.Attr("href")
-	if twitterHref != "" {
-		twitterURL, _ := url.Parse(twitterHref)
-		twitterHandle := strings.Replace(twitterURL.Path, "/", "", -1)
-		result.Twitter = &twitterHandle
-	}
-
-	instaElement := bioDoc.Find(".instagram a")
-	instaHref, _ := instaElement.Attr("href")
-	if instaHref != "" {
-		instaURL, _ := url.Parse(instaHref)
-		instaHandle := strings.Replace(instaURL.Path, "/", "", -1)
-		result.Instagram = &instaHandle
-	}
-
-	return &result, nil
-}
-
-func getIndexes(doc *goquery.Document) map[string]int {
-	var indexes = make(map[string]int)
-	doc.Find(".paramname").Each(func(i int, s *goquery.Selection) {
-		index := i + 1
-		paramName := trim(s.Text())
-		switch paramName {
-		case "Babe Name:":
-			indexes["name"] = index
-		case "Ethnicity:":
-			indexes["ethnicity"] = index
-		case "Country of Origin:":
-			indexes["country"] = index
-		case "Date of Birth:":
-			indexes["birthdate"] = index
-		case "Eye Color:":
-			indexes["eye_color"] = index
-		case "Height:":
-			indexes["height"] = index
-		case "Measurements:":
-			indexes["measurements"] = index
-		case "Fake boobs:":
-			indexes["fake_tits"] = index
-		case "Career Start And End":
-			indexes["career_length"] = index
-		case "Tattoos:":
-			indexes["tattoos"] = index
-		case "Piercings:":
-			indexes["piercings"] = index
-		case "Aliases:":
-			indexes["aliases"] = index
-		}
-	})
-	return indexes
-}
-
-func getEthnicity(ethnicity string) string {
-	switch ethnicity {
-	case "Caucasian":
-		return "white"
-	case "Black":
-		return "black"
-	case "Latin":
-		return "hispanic"
-	case "Asian":
-		return "asian"
-	default:
-		panic("unknown ethnicity")
-	}
-}
-
-func paramValue(params *goquery.Selection, paramIndex int) string {
-	i := paramIndex - 1
-	if paramIndex <= 0 {
-		return ""
-	}
-	node := params.Get(i).FirstChild
-	content := trim(node.Data)
-	if content != "" {
-		return content
-	}
-	node = node.NextSibling
-	if (node == nil) {
-		return ""
-	}
-	return trim(node.FirstChild.Data)
-}
-
-// https://stackoverflow.com/questions/20305966/why-does-strip-not-remove-the-leading-whitespace
-func trim(text string) string {
-	// return text.replace(/\A\p{Space}*|\p{Space}*\z/, "");
-	return strings.TrimSpace(text)
+	return newGroupScraper(*c, txnManager, globalConfig)
 }

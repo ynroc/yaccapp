@@ -1,56 +1,16 @@
 mutation SceneUpdate(
-  $id: ID!,
-  $title: String,
-  $details: String,
-  $url: String,
-  $date: String,
-  $rating: Int,
-  $studio_id: ID,
-  $gallery_id: ID,
-  $performer_ids: [ID!] = [],
-  $tag_ids: [ID!] = []) {
+  $input: SceneUpdateInput!) {
 
-  sceneUpdate(input: {
-                        id: $id,
-                        title: $title,
-                        details: $details,
-                        url: $url,
-                        date: $date,
-                        rating: $rating,
-                        studio_id: $studio_id,
-                        gallery_id: $gallery_id,
-                        performer_ids: $performer_ids,
-                        tag_ids: $tag_ids
-                      }) {
-      ...SceneData
+  sceneUpdate(input: $input) {
+    ...SceneData
   }
 }
 
 mutation BulkSceneUpdate(
-  $ids: [ID!] = [],
-  $title: String,
-  $details: String,
-  $url: String,
-  $date: String,
-  $rating: Int,
-  $studio_id: ID,
-  $gallery_id: ID,
-  $performer_ids: [ID!],
-  $tag_ids: [ID!]) {
+  $input: BulkSceneUpdateInput!) {
 
-  bulkSceneUpdate(input: {
-                        ids: $ids,
-                        title: $title,
-                        details: $details,
-                        url: $url,
-                        date: $date,
-                        rating: $rating,
-                        studio_id: $studio_id,
-                        gallery_id: $gallery_id,
-                        performer_ids: $performer_ids,
-                        tag_ids: $tag_ids
-                      }) {
-      ...SceneData
+  bulkSceneUpdate(input: $input) {
+    ...SceneData
   }
 }
 
@@ -60,6 +20,26 @@ mutation ScenesUpdate($input : [SceneUpdateInput!]!) {
   }
 }
 
+mutation SceneIncrementO($id: ID!) {
+  sceneIncrementO(id: $id) 
+}
+
+mutation SceneDecrementO($id: ID!) {
+  sceneDecrementO(id: $id)
+}
+
+mutation SceneResetO($id: ID!) {
+  sceneResetO(id: $id)
+}
+
 mutation SceneDestroy($id: ID!, $delete_file: Boolean, $delete_generated : Boolean) {
   sceneDestroy(input: {id: $id, delete_file: $delete_file, delete_generated: $delete_generated})
+}
+
+mutation ScenesDestroy($ids: [ID!]!, $delete_file: Boolean, $delete_generated : Boolean) {
+  scenesDestroy(input: {ids: $ids, delete_file: $delete_file, delete_generated: $delete_generated})
+}
+
+mutation SceneGenerateScreenshot($id: ID!, $at: Float) {
+  sceneGenerateScreenshot(id: $id, at: $at)
 }

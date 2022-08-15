@@ -1,0 +1,300 @@
+.LoadingIndicator {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+
+  &:not(.card-based) {
+    height: 70vh;
+  }
+
+  &-message {
+    margin-top: 1rem;
+  }
+
+  .spinner-border {
+    height: 3rem;
+    width: 3rem;
+  }
+
+  &.inline {
+    display: inline;
+    height: auto;
+    margin-left: 0.5rem;
+  }
+
+  &.small .spinner-border {
+    height: 1rem;
+    width: 1rem;
+  }
+}
+
+.details-edit {
+  /* 
+    The penultimate button should be wrapped in an unstyled div. 
+    This allows the div to expand, to right-justify the last (save / delete) button.
+  */
+
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: left;
+  padding: 0;
+  row-gap: 0.5rem;
+
+  .btn {
+    margin-right: 0.5rem;
+    white-space: nowrap;
+  }
+
+  div:nth-last-child(2) {
+    flex: 1;
+    max-width: 100%;
+  }
+}
+
+.select-suggest {
+  &:hover {
+    cursor: text;
+  }
+}
+
+.duration-input {
+  .duration-control {
+    min-width: 3rem;
+  }
+
+  .duration-button {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+    line-height: 10px;
+    padding: 1px 7px;
+  }
+
+  .btn + .btn {
+    margin-left: 0;
+  }
+}
+
+.folder-list {
+  margin-top: 0.5rem 0 0 0;
+  max-height: 30vw;
+  overflow-x: auto;
+}
+
+.folder-item {
+  button {
+    padding: 0;
+  }
+}
+
+// z-index gets set on button groups for some reason
+.multi-set .btn-group > button.btn {
+  z-index: auto;
+}
+
+.folder-list {
+  list-style-type: none;
+  margin: 0;
+  padding-top: 1rem;
+
+  &-item {
+    white-space: nowrap;
+
+    .btn-link {
+      border: none;
+      color: white;
+      font-weight: 400;
+      padding: 0;
+    }
+
+    &:last-child::before {
+      content: "└ \1F4C1";
+    }
+
+    &::before {
+      content: "├ \1F4C1";
+      display: inline-block;
+      padding-right: 1rem;
+      transform: scale(1.5);
+    }
+  }
+
+  &-parent {
+    &::before {
+      visibility: hidden;
+    }
+
+    .btn-link {
+      font-weight: 500;
+    }
+  }
+}
+
+.scrape-dialog .modal-content .dialog-container {
+  max-height: calc(100vh - 14rem);
+  overflow-y: auto;
+  padding-right: 15px;
+}
+
+button.collapse-button.btn-primary:not(:disabled):not(.disabled):hover,
+button.collapse-button.btn-primary:not(:disabled):not(.disabled):focus,
+button.collapse-button.btn-primary:not(:disabled):not(.disabled):active {
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: #f5f8fa;
+}
+
+.hover-popover-content {
+  max-width: 32rem;
+  text-align: center;
+}
+
+.ErrorMessage {
+  align-items: center;
+  height: 20rem;
+  justify-content: center;
+
+  &-content {
+    display: inline-block;
+  }
+}
+
+.grid-card {
+  a .card-section-title {
+    color: $text-color;
+    text-decoration: none;
+  }
+
+  .card-check {
+    left: 0.5rem;
+    margin-top: -12px;
+    opacity: 0;
+    padding-left: 15px;
+    position: absolute;
+    top: 0.7rem;
+    width: 1.2rem;
+    z-index: 1;
+
+    &:checked {
+      opacity: 0.75;
+    }
+  }
+
+  &:hover .card-check {
+    opacity: 0.75;
+    transition: opacity 0.5s;
+  }
+}
+
+.TruncatedText {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: pre-line;
+
+  &-tooltip .tooltip-inner {
+    max-width: 300px;
+    white-space: pre-line;
+  }
+
+  .file-info-panel a > & {
+    word-break: break-all;
+  }
+}
+
+.RatingStars {
+  &-unfilled {
+    path {
+      fill: white;
+    }
+  }
+
+  &-filled {
+    path {
+      fill: gold;
+    }
+  }
+}
+
+.three-state-checkbox {
+  align-items: center;
+  display: flex;
+
+  button.btn {
+    font-size: 12.67px;
+    margin-left: -0.2em;
+    margin-right: 0.25rem;
+    padding: 0;
+
+    &:not(:disabled):active,
+    &:not(:disabled):active:focus,
+    &:not(:disabled):hover,
+    &:not(:disabled):not(:hover) {
+      background-color: initial;
+      box-shadow: none;
+    }
+  }
+
+  &.unset {
+    .label {
+      color: #bfccd6;
+      text-decoration: line-through;
+    }
+  }
+
+  &.checked svg {
+    color: #0f9960;
+  }
+
+  &.not-checked svg {
+    color: #db3737;
+  }
+}
+
+.input-group-prepend {
+  .btn {
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+  }
+}
+
+.ModalComponent .modal-footer {
+  justify-content: space-between;
+}
+
+.scrape-url-button:disabled {
+  opacity: 0.5;
+}
+
+.string-list-input .input-group {
+  margin-bottom: 0.25rem;
+}
+
+.bulk-update-text-input {
+  button {
+    background-color: $secondary;
+    color: $text-muted;
+    font-size: $btn-font-size-sm;
+    margin: $btn-padding-y $btn-padding-x;
+    padding: 0;
+    position: absolute;
+    right: 0;
+    z-index: 4;
+
+    &:hover,
+    &:focus,
+    &:active,
+    &:not(:disabled):not(.disabled):active,
+    &:not(:disabled):not(.disabled):active:focus {
+      background-color: $secondary;
+      border-color: transparent;
+      box-shadow: none;
+    }
+  }
+
+  &.unset button {
+    visibility: hidden;
+  }
+}

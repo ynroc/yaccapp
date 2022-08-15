@@ -2,10 +2,31 @@ fragment GalleryData on Gallery {
   id
   checksum
   path
+  created_at
+  updated_at
   title
-  files {
-    index
-    name
-    path
+  date
+  url
+  details
+  rating
+  organized
+  images {
+    ...SlimImageData
+  }
+  cover {
+    ...SlimImageData
+  }
+  studio {
+    ...SlimStudioData
+  }
+  tags {
+    ...SlimTagData
+  }
+
+  performers {
+    ...PerformerData
+  }
+  scenes {
+    ...SlimSceneData
   }
 }
